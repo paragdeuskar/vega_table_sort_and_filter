@@ -8,4 +8,5 @@ This assumes that the reader has basic understanding of how Vega works.
 
 *Here is how the visualization looks like*
 
+<img src="./table_final.png" alt="Final Table" width="1300"/>
 
