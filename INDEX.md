@@ -6,3 +6,6 @@ This tutorial will walk you through creating a table visualization using Vega. T
 
 This assumes that the reader has basic understanding of how Vega works.
 
+*Here is how the visualization looks like*
+
+
