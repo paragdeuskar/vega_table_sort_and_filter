@@ -6,7 +6,10 @@ This tutorial will walk you through creating a table visualization using Vega. T
 
 This assumes that the reader has basic understanding of how Vega works.
 
-*Here is how the visualization looks like*
+**Here is how the visualization looks like:**
 
-<img src="./table_final.png" alt="Final Table" width="1300"/>
+<img src="./images/final_table.png" alt="Final Table" width="1300"/>
+
+[View source](./source/final_source.json)
+
 
