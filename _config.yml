@@ -1,4 +1,4 @@
-theme: jekyll-theme-dinky
+theme: jekyll-theme-cayman
 title: Table visualization using Vega
 description: How to create a Table visualization using Vega
 repository: paragdeuskar/vega_table_sort_and_filter
