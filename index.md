@@ -1,3 +1,7 @@
+# <span style="color: red;">This tutorial is WIP</span>
+
+
+
 # Creating a Table visualization using Vega
 This tutorial will walk you through creating a table visualization using Vega. The table would have:
 - Banded rows
@@ -66,5 +70,4 @@ In the real visualization, data is pulled from Elasticsearch. There are two `dat
 
 
 
-Something written here
 
