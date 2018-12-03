@@ -1,5 +1,5 @@
 theme: jekyll-theme-cayman
 title: Table visualization using Vega
-description: How to create a Table visualization using Vega
+description: Table with banded rows, sortable columns and filterable rows
 repository: paragdeuskar/vega_table_sort_and_filter
 
