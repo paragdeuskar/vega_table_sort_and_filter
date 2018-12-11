@@ -1,0 +1,261 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v3.json",
+  "width": 900,
+  "height": 1400,
+  "padding": 5,
+  "autosize": "pad",
+
+  "signals": [
+    {"name": "rowHeight", "value": 14},
+    {"name": "header", "value": 40, "comment": "Space left for table header"},
+    {"name": "yHeaderLine1", "value": 10},
+    {"name": "yHeaderLine2", "value": 22},
+    {"name": "yHeaderLine3", "value": 30},
+    {"name": "fontSizeHeaderLine1", "value": 14},
+    {"name": "fontSizeHeaderLine2", "value": 10},
+    {"name": "fontSizeHeaderLine3", "value": 10},
+    {"name": "fillHeaderLine1", "value": "#000"},
+    {"name": "fillHeaderLine2", "value": "#000"},
+    {"name": "fillHeaderLine3", "value": "#666"},
+    {"name": "fontSizeRows", "value": 11},
+    {"name": "dyRows", "value": 9},
+    {"name": "width1", "value": 600, "comment": "Total width for all numeric columns"},
+    {"name": "alignColumnSet1", "value": "right"},
+    {"name": "alignColumnSet2", "value": "left"},
+    {"name": "offsetColumnSet1", "value": 100},
+    {"name": "offsetColumnSet2", "value": 10},
+    {"name": "offsetTriangleDownSet1", "update": "(offsetColumnSet1 - 3)"},
+    {"name": "offsetTriangleDownSet2", "update": "(offsetColumnSet2 + 13)"},
+    {"name": "offsetTriangleUpSet1", "update": "(offsetTriangleDownSet1 - 8)", "comment": "Distance between down arrow and up arrow"},
+    {"name": "offsetTriangleUpSet2", "update": "(offsetTriangleDownSet2 - 8)", "comment": "Distance between down arrow and up arrow"},
+    {"name": "offsetHideZeroText", "update": "(offsetTriangleDownSet1 - 22)", "comment": "Distance between down arrow and Hide 0 text"},
+    {"name": "offsetHideZeroRect", "update": "(offsetHideZeroText - 35)", "comment": "Distance between Hide 0 text and checkbox"},
+    {"name": "fillTriangleNoSort", "value": "#ccc"},
+    {"name": "fillTriangleSort", "value": "#444"},
+    {"name": "sizeTriangle", "value" : 80},
+    {"name": "sizeHideZeroRect", "value" : 80},
+    {"name": "shapeMarkUnchecked", "value": "M-1,-1 h2 v2 h-2 v-2", "comment": "svg path for square without check mark"},
+    {"name": "shapeMarkChecked", "value": "M-1,-1 h2 v2 h-2 v-2 M -0.7,0 l 0.4,0.7 l 0.9,-1.4", "comment": "svg path for square with check mark"},
+    {"name": "colorOddRow", "value": "#F5F5F5"},
+    {"name": "colorEvenRow", "value": "#FFF"},
+    {"name": "colorNonEmptyQueue", "value": "#130CD5", "comment": "admin wanted the currently non-empty queue to show in a different color"},
+    {"name": "colorEmptyQueue", "value": "#000"}
+  ],
+  
+  "data": [
+    {
+      "name": "columnSet1",
+      "values": [
+        {"columnKey": "MaxDepth", "headerLine1": "Max Messages", "headerLine2": "(in last 24 HR)"},
+        {"columnKey": "Depth30Min", "headerLine1": "Messages", "headerLine2": "(30 Min ago)"},
+        {"columnKey": "Depth15Min", "headerLine1": "Messages", "headerLine2": "(15 Min ago)"},
+        {"columnKey": "Depth5Min", "headerLine1": "Messages", "headerLine2": "(5 Min ago)"},
+        {"columnKey": "DepthNow", "headerLine1": "Messages", "headerLine2": "(Now)"},
+        {"columnKey": "Consumers", "headerLine1": "Consumers", "headerLine2": "(Now)"}
+      ]
+    },
+    {
+      "name": "columnSet2",
+      "values": [
+        {"columnKey": "FQQN", "headerLine1": "Queue", "headerLine2": ""}
+      ]
+    }
+  ],
+  
+  "scales": [
+    {
+      "name": "xscaleSet1", "type": "band",
+      "domain": {"data": "columnSet1", "field": "columnKey"},
+      "range": [10, {"signal": "width1-10"}]
+    },
+    {
+      "name": "xscaleSet2", "type": "band",
+      "domain": {"data": "columnSet2", "field": "columnKey"},
+      "range": [{"signal": "width1"}, {"signal": "width-10"}]
+    }
+  ],
+
+  "marks": [
+    {
+      "type": "group",
+      "from": {"data": "columnSet1"},
+      "marks": [
+        {
+          "type": "text",
+          "encode": {
+            "enter": {
+              "align": {"signal": "alignColumnSet1"},
+              "fill": {"signal": "fillHeaderLine1"},
+              "font": {"value": "Helvetica"},
+              "fontSize": {"signal": "fontSizeHeaderLine1"},
+              "text": {"field": {"parent": "headerLine1"}}
+            },
+            "update": {
+              "x": {"scale": "xscaleSet1", "field": {"parent": "columnKey"}, "offset": {"signal": "offsetColumnSet1"}},
+              "y": {"signal": "yHeaderLine1"}
+            }
+          }
+        },
+        {
+          "type": "text",
+          "encode": {
+            "enter": {
+              "align": {"signal": "alignColumnSet1"},
+              "fill": {"signal": "fillHeaderLine2"},
+              "font": {"value": "Helvetica"},
+              "fontSize": {"signal": "fontSizeHeaderLine2"},
+              "text": {"field": {"parent": "headerLine2"}}
+            },
+            "update": {
+              "x": {"scale": "xscaleSet1", "field": {"parent": "columnKey"}, "offset": {"signal": "offsetColumnSet1"}},
+              "y": {"signal": "yHeaderLine2"}
+            }
+          }
+        },
+        {
+          "type": "symbol",
+          "name": "triangleDownSet1",
+          "encode": {
+            "enter": {
+              "shape": {"value": "triangle-down"},
+              "size": {"signal": "sizeTriangle"}
+            },
+            "update": {
+              "x": {"scale": "xscaleSet1", "field": {"parent": "columnKey"}, "offset": {"signal": "offsetTriangleDownSet1"}},
+              "y": {"signal": "yHeaderLine3"},
+              "fill": [
+                {"signal": "fillTriangleNoSort"}
+              ]
+            }
+          }
+        },
+        {
+          "type": "symbol",
+          "name": "triangleUpSet1",
+          "encode": {
+            "enter": {
+              "shape": {"value": "triangle-up"},
+              "size": {"signal": "sizeTriangle"}
+            },
+            "update": {
+              "x": {"scale": "xscaleSet1", "field": {"parent": "columnKey"}, "offset": {"signal": "offsetTriangleUpSet1"}},
+              "y": {"signal": "yHeaderLine3"},
+              "fill": [
+                {"signal": "fillTriangleNoSort"}
+              ]
+            }
+          }
+        },
+        {
+          "type": "symbol",
+          "name": "HideZeroRect",
+          "encode": {
+            "enter": {
+              "size": {"signal": "sizeTriangle"},
+              "strokeWidth": {"value": 1},
+              "stroke": {"signal": "fillTriangleSort"},
+              "fill": {"value": "white"}
+            },
+            "update": {
+              "x": {"scale": "xscaleSet1", "field": {"parent": "columnKey"}, "offset": {"signal": "offsetHideZeroRect"}},
+              "y": {"signal": "yHeaderLine3"},
+              "shape": [
+                {"signal": "shapeMarkUnchecked"}
+              ]
+            }
+          }
+        },
+        {
+          "type": "text",
+          "name": "hideZeroText",
+          "encode": {
+            "enter": {
+              "baseline": {"value": "middle"},
+              "align": {"signal": "alignColumnSet1"},
+              "fill": {"signal": "fillHeaderLine3"},
+              "font": {"value": "Helvetica"},
+              "fontSize": {"signal": "fontSizeHeaderLine3"},
+              "text": {"value": "Hide 0"}
+            },
+            "update": {
+              "x": {"scale": "xscaleSet1", "field": {"parent": "columnKey"}, "offset": {"signal": "offsetHideZeroText"}},
+              "y": {"signal": "yHeaderLine3"}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "from": {"data": "columnSet2"},
+      "marks": [
+        {
+          "type": "text",
+          "encode": {
+            "enter": {
+              "align": {"signal": "alignColumnSet2"},
+              "fill": {"signal": "fillHeaderLine1"},
+              "font": {"value": "Helvetica"},
+              "fontSize": {"signal": "fontSizeHeaderLine1"},
+              "text": {"field": {"parent": "headerLine1"}}
+            },
+            "update": {
+              "x": {"scale": "xscaleSet2", "field": {"parent": "columnKey"}, "offset": {"signal": "offsetColumnSet2"}},
+              "y": {"signal": "yHeaderLine1"}
+            }
+          }
+        },
+        {
+          "type": "text",
+          "encode": {
+            "enter": {
+              "align": {"signal": "alignColumnSet2"},
+              "fill": {"signal": "fillHeaderLine2"},
+              "font": {"value": "Helvetica"},
+              "fontSize": {"signal": "fontSizeHeaderLine2"},
+              "text": {"field": {"parent": "headerLine2"}}
+            },
+            "update": {
+              "x": {"scale": "xscaleSet2", "field": {"parent": "columnKey"}, "offset": {"signal": "offsetColumnSet2"}},
+              "y": {"signal": "yHeaderLine2"}
+            }
+          }
+        },
+        {
+          "type": "symbol",
+          "name": "triangleDownSet2",
+          "encode": {
+            "enter": {
+              "shape": {"value": "triangle-down"},
+              "size": {"signal": "sizeHideZeroRect"}
+            },
+            "update": {
+              "x": {"scale": "xscaleSet2", "field": {"parent": "columnKey"}, "offset": {"signal": "offsetTriangleDownSet2"}},
+              "y": {"signal": "yHeaderLine3"},
+              "fill": [
+                {"signal": "fillTriangleNoSort"}
+              ]
+            }
+          }
+        },
+        {
+          "type": "symbol",
+          "name": "triangleUpSet2",
+          "encode": {
+            "enter": {
+              "shape": {"value": "triangle-up"},
+              "size": {"signal": "sizeTriangle"}
+            },
+            "update": {
+              "x": {"scale": "xscaleSet2", "field": {"parent": "columnKey"}, "offset": {"signal": "offsetTriangleUpSet2"}},
+              "y": {"signal": "yHeaderLine3"},
+              "fill": [
+                {"signal": "fillTriangleNoSort"}
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
