@@ -339,3 +339,229 @@ We will create a `group` mark on `summarized-data`. Within that, we will first u
 [Here](./source/3_rows_added.json) is our code so far ... and below is what the visualization looks like with that code. 
 
 <img src="./images/4_rows_added.png" alt="Header and Rows"/>
+
+# Adding sorting capability
+Adding the sorting capability would involve 3 things:
+1. Identify which sorting button is clicked by the user
+2. Sort the data accordingly
+3. Highlight the correct sorting button 
+
+## Identify which sorting button is clicked by the user
+Let's add the below signals to capture the column and type of sorting (ascending or descending) requested by the user:
+```json
+    {
+      "name": "signalSortColumn", "value": "DepthNow",
+      "on": [
+        {"events": "@triangleUpSet1:mousedown", "update": "group().datum.columnKey"},
+        {"events": "@triangleDownSet1:mousedown", "update": "group().datum.columnKey"},
+        {"events": "@triangleUpSet2:mousedown", "update": "group().datum.columnKey"},
+        {"events": "@triangleDownSet2:mousedown", "update": "group().datum.columnKey"}
+      ],
+      "comment": "Indicates the column the user has clicked for sorting"
+    },
+    {
+      "name": "signalSortOrder", "value": "descending",
+      "on": [
+        {"events": "@triangleUpSet1:mousedown", "update": "'ascending'"},
+        {"events": "@triangleDownSet1:mousedown", "update": "'descending'"},
+        {"events": "@triangleUpSet2:mousedown", "update": "'ascending'"},
+        {"events": "@triangleDownSet2:mousedown", "update": "'descending'"}
+      ],
+      "comment": "Indicates whether the user wants ascending or descending sorting"
+    }
+```
+There might be a few things worth commenting about these signal definitions ...
+* They are done on named marks (such as triangleUpSet1) (Notice that while drawing the visualization, these marks were named accordingly).
+* The marks did not have a data source of their own, but were drawn based on `group` data source. Hence, you will see that the `update` statement uses `group().datum.colunmKey` construct.
+* `comment` field that is added is not part of the Vega specification, but is added just for easy explanation. Vega ignores this field (with a warning).
+* The default sorting is on "DepthNow", in a "descending" fashion.
+
+Now, we have successfully identified the sorting button clicked by the user.
+
+## Sort the data
+Now we need to sort the dataset `summarized-data` on the appropriate column. Unfortunately, we cannot use a transform with dynamic column name. So, we add a field to this dataset which will be our designated field to be used for sorting - in fact, we would call it `sortField`. We would ensure to copy the data from appropriate column to `sortField`. To do this we will use `formula` transform on `summarized-data` as follows:
+```json
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'FQQN' ? datum.FQQN : datum.sortField"},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'MaxDepth' ? datum.MaxDepth : datum.sortField"},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'Depth30Min' ? datum.Depth30Min : datum.sortField"},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'Depth15Min' ? datum.Depth15Min : datum.sortField"},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'Depth5Min' ? datum.Depth5Min : datum.sortField"},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'DepthNow' ? datum.DepthNow : datum.sortField"},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'Consumers' ? datum.Consumers : datum.sortField"}
+```
+Now that we have the `sortField` populated with the correct column data, we will sort on that field using one more transform:
+```json
+        {
+          "type": "window", "sort": {"field": ["sortField", "FQQN"], "order": [{"signal": "signalSortOrder"}, "ascending"]},
+          "ops": ["row_number"], "as": ["RowNum"]
+        }
+```
+Note that while sorting, we are using two fields, one specified by the `signalSortColumn` and another hardcoded ('FQQN'). This is because we want to sort the data by the desired column followed by Queue (though this was not specifically stated in the requirements).
+
+Also note appropriate sorting order is achieved using `signalSortOrder` in this transform.
+
+If the user clicks on Queue field sorting buttons, then this transform will be equivalent to `"sort": {"field": ["FQQN", "FQQN"]`, which is perfectly fine.
+
+## Highlight the correct sorting button 
+To do this, we simply need to use the right fill color for the appropriate triangle. See the code snippet below for the same:
+
+```json
+        {
+          "type": "symbol",
+          "name": "triangleDownSet1",
+          "encode": {
+            "enter": {
+              "shape": {"value": "triangle-down"},
+              "size": {"signal": "sizeTriangle"}
+            },
+            "update": {
+              "x": {"scale": "xscaleSet1", "field": {"parent": "columnKey"}, "offset": {"signal": "offsetTriangleDownSet1"}},
+              "y": {"signal": "yHeaderLine3"},
+lOOk here >>  "fill": [
+                {"test": "parent.columnKey === signalSortColumn && 'descending' === signalSortOrder", "signal": "fillTriangleSort"},
+                {"signal": "fillTriangleNoSort"}
+              ]
+            }
+          }
+        },
+        {
+          "type": "symbol",
+          "name": "triangleUpSet1",
+          "encode": {
+            "enter": {
+              "shape": {"value": "triangle-up"},
+              "size": {"signal": "sizeTriangle"}
+            },
+            "update": {
+              "x": {"scale": "xscaleSet1", "field": {"parent": "columnKey"}, "offset": {"signal": "offsetTriangleUpSet1"}},
+              "y": {"signal": "yHeaderLine3"},
+lOOk here >>  "fill": [
+                {"test": "parent.columnKey === signalSortColumn && 'ascending' === signalSortOrder", "signal": "fillTriangleSort"},
+                {"signal": "fillTriangleNoSort"}
+              ]
+            }
+          }
+        }
+```
+
+# Adding filtering capability
+Adding the filtering capability would involve following steps:
+1. Identify which column's filtering button is clicked by the user 
+2. Identify if the click indicates "filter" or "remove filter" (as this is a toggle operation)
+3. Filter the data accordingly
+4. Set the "Hide 0" mark appropriately to "checked" or "unchecked" state.
+
+## Identify which column's filtering button is clicked by the user 
+Let's add the below signal to capture the column where "filter" or "remove filter" is requested by the user:
+```json
+    {
+      "name": "signalHideZeroColumn", "value": null,
+      "on": [
+        {"events": "@HideZeroRect:mousedown", "update": "group().datum"},
+        {"events": "window:mouseup", "update": "null"}
+      ],
+      "comment": "Indicates the column whose Hide 0 checkbox has been most recently clicked "
+    }
+```
+Using this signal, we will manipulate datasets and identify which columns need filter to be applied.
+
+## Identify if the click indicates "filter" or "remove filter" (as this is a toggle operation)
+Let's add the below transform to dataset `columnSet1`:
+```json
+      "transform": [
+        {"type": "formula", "as": "hzChecked", "expr": "isObject(datum.hzChecked) ? datum.hzChecked : false"},
+        {"type": "formula", "as": "hzChecked", "expr": "signalHideZeroColumn === datum ? !datum.hzChecked : datum.hzChecked"}
+      ]
+```
+The first transform checks if the datum has an object hzChecked (which would not be present to begin with). If found, it leaves it untouched, otherwise adds/sets it to "false" (basically, initializes it to "false").
+
+The second transform checks if the click was on the datum under context and if so it toggles the value by setting it to `!datum.hzChecked`, else leaves it untouched.
+
+At the end of these transforms, `columnSet1` has an additional column `hzChecked` set to either 'true' or 'false' for each datum.
+
+## Filter the data accordingly
+
+To filter the data all we really need to do is add a filter transform on `summarized-data`, but it turns out to be a little bit more complex than imagined. There is no facility in the `filter` transform to say something like:
+```
+if the row in dataset 'columnSet1' where 'columnKey' is 'MaxDepth', has field 'hzChecked'
+set to 'true' then filter this (i.e. 'summarized-data') dataset by applying condition
+'datum.MaxDepth > 0'
+```
+and so on and so forth for the other columns. BUT, there IS a way to say something like:
+```
+if a 'specific column' in a 'specific row' (identified by row number) in a 'specific dataset'
+is set to a 'specific value' then apply a 'specific filter' on 'this' dataset.
+```
+So, we are going to make use of that facility.
+
+Since we need to identify the row in the other dataset by row number, we will simply create a 'flattened' dataset which has only one row and tracks which columns need filtering and which don't.
+
+We do this by creating a new dataset and using `lookup` transform:
+```json
+    {
+      "name": "hideZeroColumns",
+      "values": [
+        {"keyMax": "MaxDepth", "key30": "Depth30Min", "key15": "Depth15Min", "key5": "Depth5Min", "keyNow": "DepthNow", "keyConsumers": "Consumers"}
+      ],
+      "transform": [
+        {"type": "lookup", "from": "columnSet1", "key": "columnKey", "fields": ["keyMax"],"as": ["hzMax"]},
+        {"type": "lookup", "from": "columnSet1", "key": "columnKey", "fields": ["key30"],"as": ["hz30"]},
+        {"type": "lookup", "from": "columnSet1", "key": "columnKey", "fields": ["key15"],"as": ["hz15"]},
+        {"type": "lookup", "from": "columnSet1", "key": "columnKey", "fields": ["key5"],"as": ["hz5"]},
+        {"type": "lookup", "from": "columnSet1", "key": "columnKey", "fields": ["keyNow"],"as": ["hzNow"]},
+        {"type": "lookup", "from": "columnSet1", "key": "columnKey", "fields": ["keyConsumers"],"as": ["hzConsumers"]},
+        {
+          "type": "project",
+          "fields": ["hzMax.hzChecked", "hz30.hzChecked", "hz15.hzChecked", "hz5.hzChecked", "hzNow.hzChecked", "hzConsumers.hzChecked"],
+          "as": ["hzMaxChecked", "hz30Checked", "hz15Checked", "hz5Checked", "hzNowChecked", "hzConsumersChecked"]
+        }
+      ]
+    }
+```
+At this stage, the dataset `hideZeroColumns` would have one row with columns `hzMaxChecked`, `hz30Checked` etc which are all set to `true` or `false`.
+
+Now we can apply transform on `summarized-data` and filter out the rows as follow:
+```json
+    {
+      "name": "summarized-data", "source": "maxdepth-24H",
+      "transform": [
+        {"type": "lookup", "from": "depth-now", "key": "FQQN", "fields": ["FQQN"], "values": ["Depth","Consumers"], "as": ["DepthNow","Consumers"]},
+        {"type": "lookup", "from": "depth-5min-ago", "key": "FQQN", "fields": ["FQQN"], "values": ["Depth"], "as": ["Depth5Min"]},
+        {"type": "lookup", "from": "depth-15min-ago", "key": "FQQN", "fields": ["FQQN"], "values": ["Depth"], "as": ["Depth15Min"]},
+        {"type": "lookup", "from": "depth-30min-ago", "key": "FQQN", "fields": ["FQQN"], "values": ["Depth"], "as": ["Depth30Min"]},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'FQQN' ? datum.FQQN : datum.sortField"},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'MaxDepth' ? datum.MaxDepth : datum.sortField"},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'Depth30Min' ? datum.Depth30Min : datum.sortField"},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'Depth15Min' ? datum.Depth15Min : datum.sortField"},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'Depth5Min' ? datum.Depth5Min : datum.sortField"},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'DepthNow' ? datum.DepthNow : datum.sortField"},
+        {"type": "formula", "as": "sortField", "expr": "signalSortColumn === 'Consumers' ? datum.Consumers : datum.sortField"},
+     >> {"type": "filter", "expr": "!data('hideZeroColumns')[0].hzMaxChecked || datum.MaxDepth > 0"},
+     >> {"type": "filter", "expr": "!data('hideZeroColumns')[0].hz30Checked || datum.Depth30Min > 0"},
+lOOk >> {"type": "filter", "expr": "!data('hideZeroColumns')[0].hz15Checked || datum.Depth15Min > 0"},
+here >> {"type": "filter", "expr": "!data('hideZeroColumns')[0].hz5Checked || datum.Depth5Min > 0"},
+     >> {"type": "filter", "expr": "!data('hideZeroColumns')[0].hzNowChecked || datum.DepthNow > 0"},
+     >> {"type": "filter", "expr": "!data('hideZeroColumns')[0].hzConsumersChecked || datum.Consumers > 0"},
+        {
+          "type": "window", "sort": {"field": ["sortField", "FQQN"], "order": [{"signal": "signalSortOrder"}, "ascending"]},
+          "ops": ["row_number"], "as": ["RowNum"]
+        },
+        {"type": "formula", "as": "Odd", "expr": "datum.RowNum % 2 ? true : false"}
+      ]
+    }
+```
+
+With this our data is filtered to show only the desired rows.
+
+## Set the "Hide 0" mark appropriately to "checked" or "unchecked" state.
+
+The last bit that we still need to do is to show the checkboxes checked or unchecked correctly.
+
+To do this, we simply make use of the `production rule` on the `shape` attribute of the mark `HideZeroRect`:
+```json
+              "shape": [
+                {"test": "parent.hzChecked", "signal": "shapeMarkChecked"},
+                {"signal": "shapeMarkUnchecked"}
+              ]
+```
+
